@@ -34,8 +34,11 @@
 enum CellStatus { BLACK = -1, FREE, WHITE };
 
 struct Cell {
-	cocos2d::Sprite* sprite = nullptr;
+	cocos2d::Sprite* cell_sprite = nullptr; // спрайт клетки
+	cocos2d::Sprite* pawn_sprite = nullptr; // спрайт клетки
 	CellStatus status = FREE;
+	cocos2d::Vec2 position_on_map;
+	bool choised = false;
 };
 
 using BoardMap = std::vector<std::vector<Cell>>;
@@ -45,64 +48,46 @@ public:
 	explicit Board() {}
 
 	BoardMap BuildBoard();
+	std::vector<Cell> ArrangeCheckers(const CellStatus color = WHITE);
 
-	const Cell& GetCell(const int x, const int y) const { return map[x][y]; }
-	// оба игрока будут обращаться к игровому полю во время хода и
-	// напрямую отмечать текущее расположение своих шашек на игровом поле
-	Cell& ShareCell(const int x, const int y) { return map[x][y];	}
+	const Cell& GetCell(const int x, const int y) const { return board[x][y]; }
+
+	bool IsChoised() const { return choised_pawn; }
+	void SetChoised(const cocos2d::Vec2& coordinates) {
+		choised_pawn = &board[coordinates.x][coordinates.y];
+		choised_pawn->choised = true;
+		choised_pawn->pawn_sprite->setColor(cocos2d::Color3B(cocos2d::Color3B::RED));
+	}
+	void CancelChoise(const cocos2d::Vec2& coordinates) {
+		choised_pawn->choised = false;
+		choised_pawn->pawn_sprite->setColor(cocos2d::Color3B(cocos2d::Color3B::WHITE));
+		choised_pawn = nullptr;
+	}
+	const Cell* GetChoised() const { return choised_pawn; }
+
+	const Cell& GetCellByTouch(const cocos2d::Vec2& touchLocation) const;
 
 	cocos2d::Vec2 GetCellSize() const {
-		return {map[0][0].sprite->getContentSize().width, map[0][0].sprite->getContentSize().height};
+		return {board[0][0].cell_sprite->getContentSize().width, board[0][0].cell_sprite->getContentSize().height};
 	}
+	void MoveIsPosibleTo(const cocos2d::Vec2& move_to);
+
 	// true - ходит компьютер
 	// false - ходит человек
 	bool IsAiMove() const { return ai_move; }
 	void ChangePlayer() { ai_move = !ai_move; }
 
+	void AiMove() {}
+
 private:
-	BoardMap map; // map[x][y]
+	BoardMap board; // board[x][y] - x и y это позиция одной клетки
+	std::vector<Cell> black_pawns;
+	std::vector<Cell> white_pawns;
 	bool ai_move = false; // хранит чей сейчас ход
+	Cell* choised_pawn = nullptr;
 
 };
 
-class Player {
-public:
-	explicit Player(const bool ai, std::shared_ptr<Board> bd)
-		: is_ai(ai)
-		, map(bd)
-	{}
-
-	~Player() {}
-	// первоначальная расстановка шашек (вызывается 1 раз, в начале игры)
-	std::vector<cocos2d::Sprite*> ArrangeCheckers();
-	std::vector<cocos2d::Sprite*>& ShareCheckers() { return player_checkers; }
-	cocos2d::Sprite* GetChoised() const { return choised_checker; }
-	// выбрать шашку
-	void SetChoised(cocos2d::Sprite* ch) {
-		choised_checker = ch;
-		choised_checker->setColor(cocos2d::Color3B::RED);
-	}
-	// сбросить выбор
-	void ResetChoise() {
-		if (choised_checker) {
-			choised_checker->setColor(cocos2d::Color3B::WHITE);
-			choised_checker = nullptr;
-		}
-	}
-	// вызывается постоянно из метода GameScene::update(float)
-	// если is_ai == true, играет компьютер,
-	// в противном случае, шашки двигает человек
-	void Tick(); // для AI
-	bool Tick(const cocos2d::Event& event); // для человека. возаращает true, когда ход закончен
-
-
-private:
-	bool is_ai; // нужен для выбора шашек (черные или белые)
-	std::vector<cocos2d::Sprite*> player_checkers;
-	cocos2d::Sprite* choised_checker = nullptr;
-	std::shared_ptr<Board> map;
-
-};
 
 class GameScene : public cocos2d::Scene {
 public:
@@ -118,12 +103,12 @@ public:
 	CREATE_FUNC(GameScene);
 
 private:
-	enum SLayer {BOARD, CHECKER, LABEL};
+	enum SLayer {BOARD, PAWN, LABEL};
 
 	std::shared_ptr<Board> board;
 
-	std::shared_ptr<Player> white_player;
-	std::shared_ptr<Player> black_player;
+//	std::shared_ptr<Player> white_player;
+//	std::shared_ptr<Player> black_player;
 
 };
 
