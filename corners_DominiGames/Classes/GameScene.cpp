@@ -39,58 +39,69 @@ bool GameScene::init() {
 	if (!Scene::init())	return false;
 
 	board = std::make_shared<Board>();
-
-	int xx = 0;
+	int x__ = 0;
 	for (const auto& x : board->BuildBoard()) {
-		int yy = 0;
+		int y__ = 0;
 		for (const auto& y : x) {
-			this->addChild(y.sprite, 0);
-			//
+			// рисуем игровую доску
+			this->addChild(y.sprite, SLayer::BOARD);
+			// добавим подписи для каждой клетки
 			std::stringstream ss;
-			ss << static_cast<char>(xx + 'a') << ", " << yy + 1;
+			ss << static_cast<char>(x__ + 'a') << y__ + 1;
 			Label* label = Label::create();
 			label->setString(ss.str());
 			label->setColor(Color3B::GRAY);
 			label->setAnchorPoint(Vec2(0.5, 0.5));
 			label->setPosition(y.sprite->getPosition());
-			this->addChild(label, 3);
-			++yy;
+			this->addChild(label, SLayer::LABEL);
+			++y__;
 		}
-		++xx;
+		++x__;
 	}
 
 	white_player = std::make_shared<Player>(false, board);
 	for (const auto& it : white_player->ArrangeCheckers()) {
-		this->addChild(it, 1);
+		this->addChild(it, SLayer::CHECKER);
 	}
 
 	black_player = std::make_shared<Player>(true, board);
 	for (const auto& it : black_player->ArrangeCheckers()) {
-		this->addChild(it, 1);
+		this->addChild(it, SLayer::CHECKER);
 	}
 
+	// Запускаем игровой цикл
+	// Как только игровой цикл открывается, он вызывает функцию GameScene::update(float delta)
+	this->scheduleUpdate();
 
 	return true;
 }
 
+void GameScene::update(float delta) {
+
+}
+
+// BoardMap - это std::vector<std::vector<Cell>>
 BoardMap Board::BuildBoard() {
 	map.resize(8);
 	for (auto& it : map) {
 		it.resize(8);
 	}
-	// рисуем игровое поле
+	// создаем игровое поле 8х8
 	bool is_green = true;
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
 			Sprite* cell = Sprite::create("cell.png");
-			Vec2 pos(cell->getContentSize().width * x + cell->getContentSize().width / 2,
+			const Vec2 pos(cell->getContentSize().width * x + cell->getContentSize().width / 2,
 							 cell->getContentSize().height * y + cell->getContentSize().height / 2);
 
 			cell->setPosition(pos);
-			if (is_green) {
+			if (is_green) { // меняем цвет клетки на зеленый
 				cell->setColor(Color3B(158, 208, 6));
 			}
 			is_green = !is_green;
+			// у каждой клетки свой индекс в двумерном векторе
+			// по индексу нужно будет достать cell.sprite->getPosition() чтобы знать куда перемещать шашку,
+			// и вообще иметь полную картину хода игры
 			map[x][y].sprite = cell;
 		}
 		is_green = !is_green;
@@ -99,28 +110,29 @@ BoardMap Board::BuildBoard() {
 }
 
 std::vector<cocos2d::Sprite*> Player::ArrangeCheckers() {
-	int x = 0;
-	int y = 0;
+	int x__ = 0;
+	int y__ = 0;
 	std::string file_name;
 	if (is_ai) {
-		file_name = "b_checker.png";
-		y += 5;
+		file_name = "black_checker.png";
+		y__ += 5;
 	}
 	else {
-		file_name = "w_checker.png";
-		x += 5;
+		file_name = "white_checker.png";
+		x__ += 5;
 	}
-	for (int yy = y; yy < y + 3; ++yy) {
-		for (int xx = x; xx < x + 3; ++xx) {
+	for (int y = y__; y < y__ + 3; ++y) {
+		for (int x = x__; x < x__ + 3; ++x) {
 			cocos2d::Sprite* checker = cocos2d::Sprite::create(file_name);
-			const auto cellXY = map->getCell(xx, yy).sprite;
+			const auto cellXY = map->GetCell(x, y).sprite;
 			checker->setPosition(cellXY->getPosition());
 
+			// отмечаем какие где расположены шашки на игровом поле
 			if (is_ai) {
-				map->shareCell(xx, yy).status = CellStatus::BLACK;
+				map->ShareCell(x, y).status = CellStatus::BLACK;
 			}
 			else {
-				map->shareCell(xx, yy).status = CellStatus::WHITE;
+				map->ShareCell(x, y).status = CellStatus::WHITE;
 			}
 			player_checkers.push_back(checker);
 		}

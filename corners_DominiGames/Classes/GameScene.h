@@ -22,8 +22,8 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-#ifndef __HELLOWORLD_SCENE_H__
-#define __HELLOWORLD_SCENE_H__
+#ifndef __GAME_SCENE_H__
+#define __GAME_SCENE_H__
 
 #include "cocos2d.h"
 #include <iostream>
@@ -35,10 +35,7 @@
 enum CellStatus { BLACK = -1, FREE, WHITE };
 
 struct Cell {
-	Cell() {}
-	Cell(cocos2d::Sprite* sprt, CellStatus stat) : sprite(sprt), status(stat) { }
-
-	cocos2d::Sprite* sprite;
+	cocos2d::Sprite* sprite = nullptr;
 	CellStatus status = FREE;
 };
 
@@ -50,16 +47,22 @@ public:
 
 	BoardMap BuildBoard();
 
-	Cell getCell(const int x, const int y) const { return map[x][y];	}
-	Cell& shareCell(const int x, const int y) { return map[x][y];	}
+	const Cell& GetCell(const int x, const int y) const { return map[x][y]; }
+	// оба игрока будут обращаться к игровому полю во время хода и
+	// напрямую отмечать текущее расположение своих шашек на игровом поле
+	Cell& ShareCell(const int x, const int y) { return map[x][y];	}
 
-	cocos2d::Vec2 getCellSize() const {
+	cocos2d::Vec2 GetCellSize() const {
 		return {map[0][0].sprite->getContentSize().width, map[0][0].sprite->getContentSize().height};
 	}
+	// true - ходит компьютер
+	// false - ходит человек
+	bool GetWhoseMove() const { return ai_move; }
+	void ChangePlayer() { ai_move = !ai_move; }
 
 private:
-
 	BoardMap map; // map[x][y]
+	bool ai_move = false; // хранит чей сейчас ход
 
 };
 
@@ -67,33 +70,39 @@ class Player {
 public:
 	explicit Player(const bool ai, std::shared_ptr<Board> bd)
 		: is_ai(ai)
-		, map(bd) {}
+		, map(bd)
+	{}
 
+	~Player() {}
+	// первоначальная расстановка шашек (вызывается 1 раз, в начале игры)
 	std::vector<cocos2d::Sprite*> ArrangeCheckers();
 
-	~Player() { }
+	// вызывается постоянно из метода GameScene::update(float)
+	// если is_ai == true, играет компьютер,
+	// в противном случае, шашки двигает человек
+	void Tick();
+
 
 private:
-	const int NUMBER_OF_CHECKERS = 9;
 	bool is_ai;
 	std::vector<cocos2d::Sprite*> player_checkers;
 	std::shared_ptr<Board> map;
 
-
-
 };
-
 
 class GameScene : public cocos2d::Scene {
 public:
 	static cocos2d::Scene* createScene();
-
-	virtual bool init();
+	// инициализация игровой сцены
+	virtual bool init() override;
+	// игровой цикл
+	virtual void update(float delta) override;
 
 	// implement the "static create()" method manually
 	CREATE_FUNC(GameScene);
 
 private:
+	enum SLayer {BOARD, CHECKER, LABEL};
 	std::shared_ptr<Board> board;
 
 	std::unordered_map<std::string, Cell> board_map;
@@ -101,10 +110,8 @@ private:
 	std::shared_ptr<Player> white_player;
 	std::shared_ptr<Player> black_player;
 
-
-
 };
 
 
 
-#endif // __HELLOWORLD_SCENE_H__
+#endif // __GAME_SCENE_H__
