@@ -28,7 +28,6 @@
 #include "cocos2d.h"
 #include <iostream>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
 
@@ -57,7 +56,7 @@ public:
 	}
 	// true - ходит компьютер
 	// false - ходит человек
-	bool GetWhoseMove() const { return ai_move; }
+	bool IsAiMove() const { return ai_move; }
 	void ChangePlayer() { ai_move = !ai_move; }
 
 private:
@@ -76,16 +75,31 @@ public:
 	~Player() {}
 	// первоначальная расстановка шашек (вызывается 1 раз, в начале игры)
 	std::vector<cocos2d::Sprite*> ArrangeCheckers();
-
+	std::vector<cocos2d::Sprite*>& ShareCheckers() { return player_checkers; }
+	cocos2d::Sprite* GetChoised() const { return choised_checker; }
+	// выбрать шашку
+	void SetChoised(cocos2d::Sprite* ch) {
+		choised_checker = ch;
+		choised_checker->setColor(cocos2d::Color3B::RED);
+	}
+	// сбросить выбор
+	void ResetChoise() {
+		if (choised_checker) {
+			choised_checker->setColor(cocos2d::Color3B::WHITE);
+			choised_checker = nullptr;
+		}
+	}
 	// вызывается постоянно из метода GameScene::update(float)
 	// если is_ai == true, играет компьютер,
 	// в противном случае, шашки двигает человек
-	void Tick();
+	void Tick(); // для AI
+	bool Tick(const cocos2d::Event& event); // для человека. возаращает true, когда ход закончен
 
 
 private:
-	bool is_ai;
+	bool is_ai; // нужен для выбора шашек (черные или белые)
 	std::vector<cocos2d::Sprite*> player_checkers;
+	cocos2d::Sprite* choised_checker = nullptr;
 	std::shared_ptr<Board> map;
 
 };
@@ -97,15 +111,16 @@ public:
 	virtual bool init() override;
 	// игровой цикл
 	virtual void update(float delta) override;
+	// обработка событий касания
+	bool onTouchBegan(cocos2d::Touch* touch, cocos2d::Event* unused_event);
 
 	// implement the "static create()" method manually
 	CREATE_FUNC(GameScene);
 
 private:
 	enum SLayer {BOARD, CHECKER, LABEL};
-	std::shared_ptr<Board> board;
 
-	std::unordered_map<std::string, Cell> board_map;
+	std::shared_ptr<Board> board;
 
 	std::shared_ptr<Player> white_player;
 	std::shared_ptr<Player> black_player;

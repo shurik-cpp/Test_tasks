@@ -24,10 +24,7 @@
 
 #include "GameScene.h"
 
-
 USING_NS_CC;
-
-
 
 Scene* GameScene::createScene() {
 	return GameScene::create();
@@ -69,6 +66,10 @@ bool GameScene::init() {
 		this->addChild(it, SLayer::CHECKER);
 	}
 
+	auto touchListener = EventListenerTouchOneByOne::create();
+	touchListener->onTouchBegan = CC_CALLBACK_2(GameScene::onTouchBegan, this);
+	_eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, this);
+
 	// Запускаем игровой цикл
 	// Как только игровой цикл открывается, он вызывает функцию GameScene::update(float delta)
 	this->scheduleUpdate();
@@ -76,8 +77,45 @@ bool GameScene::init() {
 	return true;
 }
 
-void GameScene::update(float delta) {
+bool GameScene::onTouchBegan(Touch* touch, Event* unused_event) {
 
+	Vec2 touchLocation = touch->getLocation();
+
+	for (auto sprite : white_player->ShareCheckers()) {
+		auto diff = touchLocation - sprite->getPosition();
+
+		if (abs(diff.x) <= sprite->getContentSize().height / 2 &&
+				abs(diff.y) <= sprite->getContentSize().width / 2) {
+			white_player->ResetChoise();
+			white_player->SetChoised(sprite);
+		}
+	}
+
+
+	return true;
+}
+
+void GameScene::update(float delta) {
+	if (board->IsAiMove()) {
+		black_player->Tick();
+		board->ChangePlayer();
+	}
+	else {
+		white_player->Tick();
+//		if (white_player->Tick())) {
+//			board->ChangePlayer();
+//		}
+	}
+}
+
+
+
+void Player::Tick() {
+
+}
+bool Player::Tick(const Event& event) {
+
+	return false;
 }
 
 // BoardMap - это std::vector<std::vector<Cell>>
