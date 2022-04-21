@@ -24,99 +24,106 @@
 
 #include "GameScene.h"
 
+
 USING_NS_CC;
+
+
 
 Scene* GameScene::createScene() {
 	return GameScene::create();
 }
 
-// Print useful error message instead of segfaulting when files are not there.
-static void problemLoading(const char* filename) {
-	printf("Error while loading: %s\n", filename);
-	printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in HelloWorldScene.cpp\n");
-}
-
 // on "init" you need to initialize your instance
 bool GameScene::init() {
-	//////////////////////////////
-	// 1. super init first
-	if ( !Scene::init() )
-	{
-		return false;
+
+	if (!Scene::init())	return false;
+
+	board = std::make_shared<Board>();
+
+	int xx = 0;
+	for (const auto& x : board->BuildBoard()) {
+		int yy = 0;
+		for (const auto& y : x) {
+			this->addChild(y.sprite, 0);
+			//
+			std::stringstream ss;
+			ss << static_cast<char>(xx + 'a') << ", " << yy + 1;
+			Label* label = Label::create();
+			label->setString(ss.str());
+			label->setColor(Color3B::GRAY);
+			label->setAnchorPoint(Vec2(0.5, 0.5));
+			label->setPosition(y.sprite->getPosition());
+			this->addChild(label, 3);
+			++yy;
+		}
+		++xx;
 	}
 
-	auto visibleSize = Director::getInstance()->getVisibleSize();
-	Vec2 origin = Director::getInstance()->getVisibleOrigin();
-
-	/////////////////////////////
-	// 2. add a menu item with "X" image, which is clicked to quit the program
-	//    you may modify it.
-
-	// add a "close" icon to exit the progress. it's an autorelease object
-	auto closeItem = MenuItemImage::create(
-				"CloseNormal.png",
-				"CloseSelected.png",
-				CC_CALLBACK_1(GameScene::menuCloseCallback, this));
-
-	if (closeItem == nullptr ||
-			closeItem->getContentSize().width <= 0 ||
-			closeItem->getContentSize().height <= 0) {
-		problemLoading("'CloseNormal.png' and 'CloseSelected.png'");
-	}
-	else {
-		float x = origin.x + visibleSize.width - closeItem->getContentSize().width/2;
-		float y = origin.y + closeItem->getContentSize().height/2;
-		closeItem->setPosition(Vec2(x,y));
+	white_player = std::make_shared<Player>(false, board);
+	for (const auto& it : white_player->ArrangeCheckers()) {
+		this->addChild(it, 1);
 	}
 
-	// create menu, it's an autorelease object
-	auto menu = Menu::create(closeItem, NULL);
-	menu->setPosition(Vec2::ZERO);
-	this->addChild(menu, 1);
-
-	/////////////////////////////
-	// 3. add your codes below...
-
-	// add a label shows "Hello World"
-	// create and initialize a label
-
-	auto label = Label::createWithTTF("Corners", "fonts/Marker Felt.ttf", 24);
-	if (label == nullptr) {
-		problemLoading("'fonts/Marker Felt.ttf'");
-	}
-	else {
-		// position the label on the center of the screen
-		label->setPosition(Vec2(origin.x + visibleSize.width/2,
-														origin.y + visibleSize.height - label->getContentSize().height));
-
-		// add the label as a child to this layer
-		this->addChild(label, 1);
+	black_player = std::make_shared<Player>(true, board);
+	for (const auto& it : black_player->ArrangeCheckers()) {
+		this->addChild(it, 1);
 	}
 
-	// add "HelloWorld" splash screen"
-	auto sprite = Sprite::create("HelloWorld.png");
-	if (sprite == nullptr) {
-		problemLoading("'HelloWorld.png'");
-	}
-	else {
-		// position the sprite on the center of the screen
-		sprite->setPosition(Vec2(visibleSize.width/2 + origin.x, visibleSize.height/2 + origin.y));
 
-		// add the sprite as a child to this layer
-		this->addChild(sprite, 0);
-	}
 	return true;
 }
 
+BoardMap Board::BuildBoard() {
+	map.resize(8);
+	for (auto& it : map) {
+		it.resize(8);
+	}
+	// рисуем игровое поле
+	bool is_green = true;
+	for (int y = 0; y < 8; ++y) {
+		for (int x = 0; x < 8; ++x) {
+			Sprite* cell = Sprite::create("cell.png");
+			Vec2 pos(cell->getContentSize().width * x + cell->getContentSize().width / 2,
+							 cell->getContentSize().height * y + cell->getContentSize().height / 2);
 
-void GameScene::menuCloseCallback(Ref* pSender) {
-	//Close the cocos2d-x game scene and quit the application
-	Director::getInstance()->end();
+			cell->setPosition(pos);
+			if (is_green) {
+				cell->setColor(Color3B(158, 208, 6));
+			}
+			is_green = !is_green;
+			map[x][y].sprite = cell;
+		}
+		is_green = !is_green;
+	}
+	return map;
+}
 
-	/*To navigate back to native iOS screen(if present) without quitting the application  ,do not use Director::getInstance()->end() as given above,instead trigger a custom event created in RootViewController.mm as below*/
+std::vector<cocos2d::Sprite*> Player::ArrangeCheckers() {
+	int x = 0;
+	int y = 0;
+	std::string file_name;
+	if (is_ai) {
+		file_name = "b_checker.png";
+		y += 5;
+	}
+	else {
+		file_name = "w_checker.png";
+		x += 5;
+	}
+	for (int yy = y; yy < y + 3; ++yy) {
+		for (int xx = x; xx < x + 3; ++xx) {
+			cocos2d::Sprite* checker = cocos2d::Sprite::create(file_name);
+			const auto cellXY = map->getCell(xx, yy).sprite;
+			checker->setPosition(cellXY->getPosition());
 
-	//EventCustom customEndEvent("game_scene_close_event");
-	//_eventDispatcher->dispatchEvent(&customEndEvent);
-
-
+			if (is_ai) {
+				map->shareCell(xx, yy).status = CellStatus::BLACK;
+			}
+			else {
+				map->shareCell(xx, yy).status = CellStatus::WHITE;
+			}
+			player_checkers.push_back(checker);
+		}
+	}
+	return player_checkers;
 }
