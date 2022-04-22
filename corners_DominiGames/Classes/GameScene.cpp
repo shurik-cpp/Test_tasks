@@ -43,15 +43,8 @@ bool GameScene::init() {
 			// рисуем игровую доску
 			this->addChild(cell.cell_sprite, SLayer::BOARD);
 			if (cell.pawn_sprite) this->addChild(cell.pawn_sprite, SLayer::PAWN);
-			// добавим подписи для каждой клетки
-			std::stringstream ss;
-			ss << static_cast<char>(x__ + 'a') << y__ + 1;
-			Label* label = Label::create();
-			label->setString(ss.str());
-			label->setColor(Color3B::GRAY);
-			label->setAnchorPoint(Vec2(0.5, 0.5));
-			label->setPosition(cell.cell_sprite->getPosition());
-			this->addChild(label, SLayer::LABEL);
+
+			this->addChild(cell.label, SLayer::LABEL);
 			++y__;
 		}
 		++x__;
@@ -69,20 +62,22 @@ bool GameScene::init() {
 }
 
 bool GameScene::onTouchBegan(Touch* touch, Event* unused_event) {
+	if (!board->IsAiMove()) {
+		Vec2 touchLocation = touch->getLocation();
+		bool is_choise = false;
+		int index = 0;
 
-	Vec2 touchLocation = touch->getLocation();
-	bool is_choise = false;
-	int index = 0;
-
-	const Cell& hit_cell = board->GetCellByTouch(touchLocation);
-	const Vec2& cell_pos = hit_cell.position_on_map;
-	// проверка, попали ли пальцем в свою шашку
-	if (hit_cell.status == CellStatus::WHITE) {
-		if (board->IsChoised()) board->CancelChoise(cell_pos);
-		board->SetChoised(cell_pos);
-	}
-	else if (hit_cell.status == CellStatus::FREE && board->IsChoised()) {
-		board->MoveIsPosibleTo(cell_pos);
+		const Cell& hit_cell = board->GetCellByTouch(touchLocation);
+		const Vec2& cell_pos = hit_cell.position_on_map;
+		std::cerr << "hit_cell_pos.x = " << cell_pos.x << "\nhit_cell_pos.y = " << cell_pos.y << '\n';
+		// проверка, попали ли пальцем в свою шашку
+		if (hit_cell.status == CellStatus::WHITE) { // || hit_cell.status == CellStatus::BLACK) {
+			if (board->IsChoised()) board->CancelChoise(cell_pos);
+			board->SetChoised(cell_pos);
+		}
+		else if (hit_cell.status == CellStatus::FREE && board->IsChoised()) {
+			board->MoveIsPosibleTo(cell_pos);
+		}
 	}
 
 	return true;
@@ -91,105 +86,7 @@ bool GameScene::onTouchBegan(Touch* touch, Event* unused_event) {
 void GameScene::update(float delta) {
 	if (board->IsAiMove()) {
 		board->AiMove();
-		board->ChangePlayer();
 	}
 }
 
 
-// BoardMap - это std::vector<std::vector<Cell>>
-BoardMap Board::BuildBoard() {
-	board.resize(8);
-	for (auto& it : board) {
-		it.resize(8);
-	}
-	// создаем игровое поле 8х8
-	bool is_green = true;
-	for (int y = 0; y < 8; ++y) {
-		for (int x = 0; x < 8; ++x) {
-			Sprite* cell = Sprite::create("cell.png");
-			const Vec2 pos(cell->getContentSize().width * x + cell->getContentSize().width / 2,
-							 cell->getContentSize().height * y + cell->getContentSize().height / 2);
-
-			cell->setPosition(pos);
-			if (is_green) { // меняем цвет клетки на зеленый
-				cell->setColor(Color3B(158, 208, 6));
-			}
-			is_green = !is_green;
-			// у каждой клетки свой индекс в двумерном векторе
-			// по индексу нужно будет достать cell.sprite->getPosition() чтобы знать куда перемещать шашку,
-			// и вообще иметь полную картину хода игры
-			board[x][y].cell_sprite = cell;
-		}
-		is_green = !is_green;
-	}
-
-	black_pawns = ArrangeCheckers(CellStatus::BLACK);
-	white_pawns = ArrangeCheckers(CellStatus::WHITE);
-	return board;
-}
-
-std::vector<Cell> Board::ArrangeCheckers(const CellStatus color) {
-	int x__ = 0;
-	int y__ = 0;
-	std::string file_name;
-	if (color == CellStatus::BLACK) {
-		file_name = "black_checker.png";
-		y__ += 5;
-	}
-	else {
-		file_name = "white_checker.png";
-		x__ += 5;
-	}
-	std::vector<Cell> pawns;
-	for (int y = y__; y < y__ + 3; ++y) {
-		for (int x = x__; x < x__ + 3; ++x) {
-			auto& cell = board[x][y];
-			cell.pawn_sprite = cocos2d::Sprite::create(file_name);
-			cell.pawn_sprite->setPosition(cell.cell_sprite->getPosition());
-			cell.position_on_map = Vec2(x, y);
-			cell.status = color;
-			pawns.push_back(cell);
-		}
-	}
-	return std::move(pawns);
-}
-
-const Cell& Board::GetCellByTouch(const Vec2& touchLocation) const {
-	for (int y = 0; y < 8; ++y) {
-		for (int x = 0; x < 8; ++x) {
-			auto diff = touchLocation - board[x][y].cell_sprite->getPosition();
-
-			if ((abs(diff.x) <= board[x][y].cell_sprite->getContentSize().height / 2)
-					&& (abs(diff.y) <= board[x][y].cell_sprite->getContentSize().width / 2)) {
-				return board[x][y];
-			}
-		}
-	}
-	return std::move(Cell());
-}
-
-void Board::MoveIsPosibleTo(const Vec2& move_to) {
-	Vec2 pawn = choised_pawn->position_on_map;
-	Cell& target_cell = board[move_to.x][move_to.y];
-
-	std::cerr << "MoveIsPosibleTo..\n";
-
-	if (target_cell.status == CellStatus::FREE) {
-		if (((target_cell.position_on_map.x == pawn.x + 1 || target_cell.position_on_map.x == pawn.x - 1) && target_cell.position_on_map.y == pawn.y) ||
-			((target_cell.position_on_map.y == pawn.y + 1 || target_cell.position_on_map.y == pawn.y - 1) && target_cell.position_on_map.x == pawn.x)) {
-
-			std::cerr << "Move to x = " << move_to.x << ", y = " << move_to.y << '\n';
-
-			target_cell.pawn_sprite = choised_pawn->pawn_sprite;
-			target_cell.pawn_sprite->setPosition(target_cell.cell_sprite->getPosition());
-			target_cell.status = choised_pawn->status;
-			choised_pawn->pawn_sprite = nullptr;
-			choised_pawn->choised = false;
-			choised_pawn->status = CellStatus::FREE;
-			choised_pawn = nullptr;
-		}
-		else {
-			std::cerr << "No posible :(\n";
-		}
-	}
-}
