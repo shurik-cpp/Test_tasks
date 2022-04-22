@@ -43,7 +43,7 @@ bool GameScene::init() {
 			// рисуем игровую доску
 			this->addChild(cell.cell_sprite, SLayer::BOARD);
 			if (cell.pawn_sprite) this->addChild(cell.pawn_sprite, SLayer::PAWN);
-
+			// подписываем клетки (для удобства, потом УДАЛИТЬ)
 			this->addChild(cell.label, SLayer::LABEL);
 			++y__;
 		}
@@ -62,21 +62,23 @@ bool GameScene::init() {
 }
 
 bool GameScene::onTouchBegan(Touch* touch, Event* unused_event) {
-	if (!board->IsAiMove()) {
-		Vec2 touchLocation = touch->getLocation();
-		bool is_choise = false;
-		int index = 0;
+	if (board->IsInGame()) {
+		if (!board->IsAiMove()) {
+			Vec2 touchLocation = touch->getLocation();
+			bool is_choise = false;
+			int index = 0;
 
-		const Cell& hit_cell = board->GetCellByTouch(touchLocation);
-		const Vec2& cell_pos = hit_cell.position_on_map;
-		std::cerr << "hit_cell_pos.x = " << cell_pos.x << "\nhit_cell_pos.y = " << cell_pos.y << '\n';
-		// проверка, попали ли пальцем в свою шашку
-		if (hit_cell.status == CellStatus::WHITE) { // || hit_cell.status == CellStatus::BLACK) {
-			if (board->IsChoised()) board->CancelChoise(cell_pos);
-			board->SetChoised(cell_pos);
-		}
-		else if (hit_cell.status == CellStatus::FREE && board->IsChoised()) {
-			board->MoveIsPosibleTo(cell_pos);
+			const Cell& hit_cell = board->GetCellByTouch(touchLocation);
+			const Vec2& cell_pos = hit_cell.position_on_map;
+			//std::cerr << "hit_cell_pos.x = " << cell_pos.x << "\nhit_cell_pos.y = " << cell_pos.y << '\n';
+			// проверка, попали ли пальцем в свою шашку
+			if (hit_cell.status == CellStatus::WHITE) { // || hit_cell.status == CellStatus::BLACK) {
+				if (board->IsChoised()) board->CancelChoise(cell_pos);
+				board->SetChoised(cell_pos);
+			}
+			else if (hit_cell.status == CellStatus::FREE && board->IsChoised()) {
+				board->MoveIsPosibleTo(cell_pos);
+			}
 		}
 	}
 
@@ -84,8 +86,10 @@ bool GameScene::onTouchBegan(Touch* touch, Event* unused_event) {
 }
 
 void GameScene::update(float delta) {
-	if (board->IsAiMove()) {
-		board->AiMove();
+	if (board->IsInGame()) {
+		if (board->IsAiMove()) {
+			board->AiMove();
+		}
 	}
 }
 

@@ -14,7 +14,7 @@ struct Cell {
 	cocos2d::Sprite* pawn_sprite = nullptr; // спрайт пешки
 	cocos2d::Label* label = nullptr;        // подпись клетки (для удобства, потом УДАЛИТЬ)
 	CellStatus status = FREE;
-	cocos2d::Vec2 position_on_map;
+	cocos2d::Vec2 position_on_map;  // хранит свои координаты на игровом поле (x, y)
 	bool choised = false;
 
 	// добавим подпись клетки (для удобства, потом УДАЛИТЬ)
@@ -42,6 +42,9 @@ public:
 
 	const Cell& GetCellByTouch(const cocos2d::Vec2& touchLocation) const;
 
+	bool IsInGame() { return !is_game_over; }
+	//std::string GetWinner();
+
 	bool IsChoised() const { return choised_pawn; }
 	void SetChoised(const cocos2d::Vec2& coordinates);
 	void CancelChoise(const cocos2d::Vec2& coordinates);
@@ -54,21 +57,23 @@ public:
 	void AiMove();
 
 private:
+	const int BOARD_SIZE = 8;
 	// using BoardMap = std::vector<std::vector<Cell>>;
 	BoardMap board; // board[x][y] - x и y это позиция одной клетки
-	std::vector<Cell> black_pawns;
-	std::vector<Cell> white_pawns;
+	std::vector<cocos2d::Vec2> black_pawns_pos;
+//	std::vector<cocos2d::Vec2> white_pawns_pos;
+	bool is_game_over = false;
 	bool ai_move = false; // хранит чей сейчас ход
 	Cell* choised_pawn = nullptr;
-
 
 	cocos2d::Vec2 GetCellSize() const {
 		return {board[0][0].cell_sprite->getContentSize().width, board[0][0].cell_sprite->getContentSize().height};
 	}
 	void ChangePlayer() { ai_move = !ai_move; }
-	std::vector<Cell> ArrangeCheckers(const CellStatus color = WHITE);
+	std::vector<cocos2d::Vec2> ArrangeCheckers(const CellStatus color = WHITE);
 
-
+	enum Move {NO, RIGHT, DOWN};
+	Move IsCanAiMove(const cocos2d::Vec2& random_pawn_pos) const;
 
 };
 
