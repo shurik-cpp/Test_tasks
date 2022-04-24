@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <ctime>
 #include <exception>
 
 enum CellStatus { BLACK = -1, FREE, WHITE };
@@ -60,20 +61,44 @@ private:
 	const int BOARD_SIZE = 8;
 	// using BoardMap = std::vector<std::vector<Cell>>;
 	BoardMap board; // board[x][y] - x и y это позиция одной клетки
-	std::vector<cocos2d::Vec2> black_pawns_pos;
-//	std::vector<cocos2d::Vec2> white_pawns_pos;
+
+	struct Pawn {
+		Pawn(const cocos2d::Vec2& p)
+			: pos(p)
+			, last_bad_pos(cocos2d::Vec2(255, 255)) {}
+
+		cocos2d::Vec2 pos;
+		cocos2d::Vec2 last_bad_pos;
+
+		bool is_move_right = true;
+		bool is_move_down = true;
+		bool is_move_left = true;
+		bool is_move_up = true;
+	};
+
+	std::vector<Pawn> black_pawns;
+	std::vector<Pawn> white_pawns;
+	Cell* choised_pawn = nullptr;
 	bool is_game_over = false;
 	bool ai_move = false; // хранит чей сейчас ход
-	Cell* choised_pawn = nullptr;
 
 	cocos2d::Vec2 GetCellSize() const {
 		return {board[0][0].cell_sprite->getContentSize().width, board[0][0].cell_sprite->getContentSize().height};
 	}
 	void ChangePlayer() { ai_move = !ai_move; }
-	std::vector<cocos2d::Vec2> ArrangeCheckers(const CellStatus color = WHITE);
+	std::vector<Pawn> ArrangeCheckers(const CellStatus color = WHITE);
 
-	enum Move {NO, RIGHT, DOWN};
-	Move IsCanAiMove(const cocos2d::Vec2& random_pawn_pos) const;
+	enum Move {RIGHT, DOWN, BLOCKED, LEFT, UP};
+
+	int GetRandomNumber(int min, int max);
+	std::vector<size_t> GetNonBlockedPawnsForAdvance(const std::vector<Pawn>& pawns) const;
+	std::vector<size_t> GetNonBlockedPawnsForBypass(const std::vector<Board::Pawn>& pawns) const ;
+	void SetBadPosition(Pawn& pawn);
+	Move GetMoveDirection(const Pawn& pawn, const bool is_advance) const;
+	void ResetAllPawnsFlags(std::vector<Pawn>& pawns);
+	void SetPawnsFlags(std::vector<Pawn>& pawns);
+
+
 
 };
 
