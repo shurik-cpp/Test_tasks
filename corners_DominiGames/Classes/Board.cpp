@@ -108,7 +108,7 @@ void Board::MoveIsPosibleTo(const Vec2& move_to) {
 		if (((target_cell.position_on_map.x == pawn.x + 1 || target_cell.position_on_map.x == pawn.x - 1) && target_cell.position_on_map.y == pawn.y) ||
 				((target_cell.position_on_map.y == pawn.y + 1 || target_cell.position_on_map.y == pawn.y - 1) && target_cell.position_on_map.x == pawn.x)) {
 
-			//std::cerr << "Move to x = " << move_to.x << ", y = " << move_to.y << '\n';
+			//std::cerr << "Human: Move to x = " << move_to.x << ", y = " << move_to.y << '\n';
 
 			target_cell.pawn_sprite = choised_pawn->pawn_sprite;
 			target_cell.pawn_sprite->setPosition(target_cell.cell_sprite->getPosition());
@@ -155,11 +155,16 @@ void Board::AiMove() {
 	}
 	if (non_blocked.size() == 0) {
 		is_game_over = true;
+		std::cerr << "Game over!" << std::endl;
 		return;
 	}
 
-	const size_t random_index = GetRandomNumber(0, non_blocked.size() -1);
+	size_t random_index;
+	if (black_pawns[bypassed_index].is_bypass) random_index = bypassed_index;
+	else random_index = GetRandomNumber(0, non_blocked.size() -1);
 	std::cerr << "random_index = " << random_index << std::endl;
+	if (!is_advance) bypassed_index = random_index;
+
 	const size_t index = non_blocked[random_index];
 	std::cerr << "Non_blocked indexes:\n";
 	for (const auto it : non_blocked) {
@@ -209,6 +214,26 @@ void Board::ResetAllPawnsFlags(std::vector<Pawn>& pawns) {
 	}
 }
 
+std::unordered_map<char, std::pair<int, int>> Board::CheckRedZones(const CellStatus color) const {
+	std::unordered_map<char, std::pair<int, int>> count;
+	const int END_LINE_X = 7;
+	const int PRE_END_LINE_X = 6;
+	const int END_LINE_Y = 0;
+	const int PRE_END_LINE_Y = 1;
+	for (int y = 0; y < BOARD_SIZE; ++y) {
+		for (int x = 0; x < BOARD_SIZE; ++x) {
+			// собираем количество черных пешек в двух крайних линиях по x и по y
+			if (board[x][y].status == color) {
+				if (x == END_LINE_X) count['y'].first++;
+				else if (x == PRE_END_LINE_X) count['y'].second++;
+				if (y == END_LINE_Y) count['x'].first++;
+				else if (y == PRE_END_LINE_Y) count['x'].second++;
+			}
+		}
+	}
+	return std::move(count);
+}
+
 void Board::SetPawnsFlags(std::vector<Pawn>& pawns) {
 	for (auto& pawn : pawns) {
 		// Первая стадия проверки:
@@ -228,38 +253,38 @@ void Board::SetPawnsFlags(std::vector<Pawn>& pawns) {
 		// проверка крайних линий (левый нижний угол, 2 ряда)
 		// если в крайней линии уже собралось 3 черных пешки, значит туда ходить не надо
 		// char - идентефикатор оси, pair.first - это линии по краю, pair.second - это вторая от края линия
-		std::unordered_map<char, std::pair<int, int>> count;
+		std::unordered_map<char, std::pair<int, int>> count_black = CheckRedZones(CellStatus::BLACK);
+		std::unordered_map<char, std::pair<int, int>> count_white = CheckRedZones(CellStatus::WHITE);
 		const int END_LINE_X = 7;
 		const int PRE_END_LINE_X = 6;
 		const int END_LINE_Y = 0;
 		const int PRE_END_LINE_Y = 1;
-		for (int y = 0; y < BOARD_SIZE; ++y) {
-			for (int x = 0; x < BOARD_SIZE; ++x) {
-				// собираем количество черных пешек в двух крайних линиях по x и по y
-				if (board[x][y].status == CellStatus::BLACK) {
-					if (x == END_LINE_X) count['y'].first++;
-					else if (x == PRE_END_LINE_X) count['y'].second++;
-					if (y == END_LINE_Y) count['x'].first++;
-					else if (y == PRE_END_LINE_Y) count['x'].second++;
-				}
-			}
-		}
+
 		// проверка заполненности крайних линий
 		const int MAX_PAWNS_IN_LINE = 3;
-		if ((forward_x == END_LINE_X && count['y'].first == MAX_PAWNS_IN_LINE) ||
-				(forward_x == PRE_END_LINE_X && count['y'].second == MAX_PAWNS_IN_LINE)) {
+		if ((forward_x == END_LINE_X && count_black['y'].first == MAX_PAWNS_IN_LINE && count_white['x'].first == 0) ||
+				(forward_x == PRE_END_LINE_X && count_black['y'].second == MAX_PAWNS_IN_LINE && count_white['x'].second == 0)) {
 			pawn.is_move_right = false;
 		}
-		if ((forward_y == END_LINE_Y && count['x'].first == MAX_PAWNS_IN_LINE) ||
-				(forward_y == PRE_END_LINE_Y && count['x'].second == MAX_PAWNS_IN_LINE)) {
+		if ((forward_y == END_LINE_Y && count_black['x'].first == MAX_PAWNS_IN_LINE && count_white['y'].first == 0) ||
+				(forward_y == PRE_END_LINE_Y && count_black['x'].second == MAX_PAWNS_IN_LINE && count_white['y'].second == 0)) {
 			pawn.is_move_down = false;
 		}
 		// Третья стадия:
 		// проверка на плохую позицию
-		if (forward_x == pawn.last_bad_pos.x) pawn.is_move_right = false;
-		if (forward_y == pawn.last_bad_pos.y) pawn.is_move_down = false;
 		// запоминаем плохую позицию
-		if (!pawn.is_move_right && !pawn.is_move_down) SetBadPosition(pawn);
+		if (!pawn.is_move_right && !pawn.is_move_down) {
+			pawn.is_bypass = true;
+			SetBadPosition(pawn);
+		}
+		if (pawn.is_bypass) {
+			if (forward_x == pawn.last_bad_pos.x) pawn.is_move_right = false;
+			if (forward_y == pawn.last_bad_pos.y) pawn.is_move_down = false;
+			if (pawn.is_move_right || pawn.is_move_down) {
+				pawn.is_bypass = false;
+				ResetBadPosition(pawn);
+			}
+		}
 		// Четвертая стадия:
 		// можем ли ходить вверх/влево
 		const int back_x = pawn.pos.x - 1;
@@ -287,7 +312,9 @@ std::vector<size_t> Board::GetNonBlockedPawnsForAdvance(const std::vector<Board:
 std::vector<size_t> Board::GetNonBlockedPawnsForBypass(const std::vector<Board::Pawn>& pawns) const {
 	std::vector<size_t> result;
 	for (size_t index = 0; index < pawns.size(); ++index) {
-		if (pawns[index].is_move_left || pawns[index].is_move_up) result.push_back(index);
+		if ((pawns[index].is_move_left || pawns[index].is_move_up) &&
+				/* если пешка уже "дома", не берем ее для обруливания препядствия */
+				(pawns[index].pos.x < 5 || pawns[index].pos.y > 2)) result.push_back(index);
 	}
 	return std::move(result);
 }
@@ -295,11 +322,14 @@ std::vector<size_t> Board::GetNonBlockedPawnsForBypass(const std::vector<Board::
 void Board::SetBadPosition(Pawn& pawn) {
 	pawn.last_bad_pos = pawn.pos;
 }
+void Board::ResetBadPosition(Pawn& pawn) {
+	pawn.last_bad_pos = Vec2(255, 255);
+}
 
 Board::Move Board::GetMoveDirection(const Pawn& pawn, const bool is_advance) const {
 	Move move = BLOCKED;
 	if (is_advance) {
-		// если можно ходить и вправо и вниз, тогда возвращаем рандомный Move, исключая Move::NO, LEFT, UP
+		// если можно ходить и вправо и вниз, тогда возвращаем рандомный Move
 		if (pawn.is_move_right && pawn.is_move_down) {
 			if (rand() % 2) move = Move::RIGHT;
 			else move = Move::DOWN;
@@ -308,8 +338,12 @@ Board::Move Board::GetMoveDirection(const Pawn& pawn, const bool is_advance) con
 		else move = Move::DOWN;
 	}
 	else {
-		if (!pawn.is_move_down && pawn.is_move_left) move = Move::LEFT;
-		else if (!pawn.is_move_right && pawn.is_move_up) move = Move::UP;
+		if (pawn.is_move_left && pawn.pos.x >= BOARD_SIZE / 2) move = Move::LEFT;
+		else if (pawn.is_move_up) move = Move::UP;
+		if (pawn.is_move_up && pawn.pos.y <= BOARD_SIZE / 2) move = Move::UP;
+		else if (pawn.is_move_left) move = Move::LEFT;
+		if (pawn.pos.y == 3) move = Move::LEFT;
+		if (pawn.pos.x == 4) move = Move::UP;
 	}
 	return move;
 }

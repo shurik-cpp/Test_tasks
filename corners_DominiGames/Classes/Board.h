@@ -74,6 +74,7 @@ private:
 		bool is_move_down = true;
 		bool is_move_left = true;
 		bool is_move_up = true;
+		bool is_bypass = false;
 	};
 
 	std::vector<Pawn> black_pawns;
@@ -81,6 +82,7 @@ private:
 	Cell* choised_pawn = nullptr;
 	bool is_game_over = false;
 	bool ai_move = false; // хранит чей сейчас ход
+	size_t bypassed_index = 0;
 
 	cocos2d::Vec2 GetCellSize() const {
 		return {board[0][0].cell_sprite->getContentSize().width, board[0][0].cell_sprite->getContentSize().height};
@@ -92,8 +94,10 @@ private:
 
 	int GetRandomNumber(int min, int max);
 	std::vector<size_t> GetNonBlockedPawnsForAdvance(const std::vector<Pawn>& pawns) const;
-	std::vector<size_t> GetNonBlockedPawnsForBypass(const std::vector<Board::Pawn>& pawns) const ;
+	std::vector<size_t> GetNonBlockedPawnsForBypass(const std::vector<Board::Pawn>& pawns) const;
+	std::unordered_map<char, std::pair<int, int>> CheckRedZones(const CellStatus color) const;
 	void SetBadPosition(Pawn& pawn);
+	void ResetBadPosition(Pawn& pawn);
 	Move GetMoveDirection(const Pawn& pawn, const bool is_advance) const;
 	void ResetAllPawnsFlags(std::vector<Pawn>& pawns);
 	void SetPawnsFlags(std::vector<Pawn>& pawns);
