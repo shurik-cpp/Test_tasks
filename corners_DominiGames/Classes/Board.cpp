@@ -153,6 +153,7 @@ void Board::AiMove() {
 		non_blocked = GetNonBlockedPawnsForBypass(black_pawns);
 		std::cerr << "Bypassed non_blocked.size() = " << non_blocked.size() << '\n';
 	}
+
 	if (non_blocked.size() == 0) {
 		is_game_over = true;
 		std::cerr << "Game over!" << std::endl;
@@ -173,6 +174,7 @@ void Board::AiMove() {
 	std::cerr << std::endl << "Choised index = " << index << std::endl;
 
 	move = GetMoveDirection(black_pawns[index], is_advance);
+
 	// если обходим препятствие, запоминаем плохую позицию
 	if (!is_advance) SetBadPosition(black_pawns[index]);
 
@@ -311,11 +313,105 @@ std::vector<size_t> Board::GetNonBlockedPawnsForAdvance(const std::vector<Board:
 
 std::vector<size_t> Board::GetNonBlockedPawnsForBypass(const std::vector<Board::Pawn>& pawns) const {
 	std::vector<size_t> result;
-	for (size_t index = 0; index < pawns.size(); ++index) {
-		if ((pawns[index].is_move_left || pawns[index].is_move_up) &&
-				/* если пешка уже "дома", не берем ее для обруливания препядствия */
-				(pawns[index].pos.x < 5 || pawns[index].pos.y > 2)) result.push_back(index);
+	std::vector<std::pair<Cell, Move>> tmp;
+	using std::cerr;
+	using std::endl;
+	cerr << "========================================" << endl;
+	// суть алгоритма выбора годной пешки для обхода белой пешки такова:
+	// 1. запускаем главный цикл поиска
+	// 2. берем все черные пешки, отсеивая тех, кто уже "дома" или уже не годных для обхода
+	// 3. ищем две самые ближайшие к "дому" пешки по принципу max(x) или min(y)
+	//    при помощи сортировки сперва по y(!), затем по x
+	// 4. проверяем, чтобы не выйти за границы поля и с какой стороны препятствие
+	// 5. если ни одна из этих пешек не может эффективно походить, возвращаемся к п.1
+	// 6. находим по координатам в векторе черных пешек и вычисляем их индекс
+	while (result.size() < 1) { // крутим главный цикл пока не будет результата
+		cerr << "========================================" << endl;
+		cerr << "Bypass step 1: tmp.size() == " << tmp.size() << endl;
+		if (tmp.size() >= pawns.size()) {
+			cerr << "No possible moves. tmp.size() == " << tmp.size() << endl;
+			break;
+		}
+
+		std::vector<Cell> cells_whith_black_pawn;
+		// пробежимся по доске и возьмем все черные, которые еще не "дома"
+
+		for (int y = 0; y < BOARD_SIZE; ++y) {
+			for (int x = 0; x < BOARD_SIZE; ++x) {
+				const Cell& cell = board[x][y];
+				// исключаем всех, кто уже "дома" и тех, кто в конце главного цикла попал в tmp,
+				// но оказался не годным для хода
+				if (x < 5 || y > 2) {
+					if (cell.status == CellStatus::BLACK) {
+						if (tmp.size() == 0) cells_whith_black_pawn.push_back(cell);
+						else {
+							bool is_good = true;
+							for (const auto it : tmp) {
+								if (cell.position_on_map.x == it.first.position_on_map.x &&
+										cell.position_on_map.y == it.first.position_on_map.y) continue;
+								else is_good = false;
+							}
+							// если не совпала ни с одним из tmp пушим в cells_whith_black_pawn
+							// для последующих проверок
+							if (is_good) cells_whith_black_pawn.push_back(cell);
+						}
+					}
+				}
+			}
+		}
+		cerr << "cells_with_black_pawn:" <<endl;
+		for (const auto& it : cells_whith_black_pawn) {
+			cerr << 'x' << it.position_on_map.x << ", y" << it.position_on_map.y << endl;
+		}
+		cerr << "Bypass step 2 sorting by y:" << endl;
+		// сортируем по min_y и берем первый элемент в массив tmp
+		std::stable_sort(begin(cells_whith_black_pawn), end(cells_whith_black_pawn),
+										 [](const Cell& lhs, const Cell& rhs) {
+			return lhs.position_on_map.y < rhs.position_on_map.y;
+		});
+		for (const auto& it : cells_whith_black_pawn) {
+			cerr << 'x' << it.position_on_map.x << ", y" << it.position_on_map.y << endl;
+		}
+		cerr << "Bypass step 3 sorting by x:" << endl;
+		tmp.push_back(std::make_pair(cells_whith_black_pawn.front(), Move::BLOCKED));
+
+		// теперь сортируем по max_x и снова берем первый элемент
+		std::stable_sort(begin(cells_whith_black_pawn), end(cells_whith_black_pawn),
+										 [](const Cell& lhs, const Cell& rhs) {
+			return lhs.position_on_map.x > rhs.position_on_map.x;
+		});
+		for (const auto& it : cells_whith_black_pawn) {
+			cerr << 'x' << it.position_on_map.x << ", y" << it.position_on_map.y << endl;
+		}
+		if (cells_whith_black_pawn.size() > 2) tmp.push_back(std::make_pair(cells_whith_black_pawn.front(), Move::BLOCKED));
+		else tmp.push_back(std::make_pair(cells_whith_black_pawn.back(), Move::BLOCKED));
+		cerr << "tmp: " << endl;
+		for (const auto& it : tmp) {
+			cerr << 'x' << it.first.position_on_map.x << ", y" << it.first.position_on_map.y << endl;
+		}
+		// проверяем валидность выбранных двух пешек
+		cerr << "Bypass step 4:" << endl;
+		if (tmp.size() == 0) return result;
+		for (auto& it : tmp) {
+			// ищем возможность обхода
+			it.second = GetMoveForBypass(it.first.position_on_map);
+			std::string move = "BLOCKED";
+			if (it.second == Move::UP) move = "UP";
+			else if (it.second == Move::LEFT) move = "LEFT";
+			cerr << "Pawn x" << it.first.position_on_map.x << ", y" << it.first.position_on_map.y << " move == " << move << endl;
+			// если текущая пешка годная, находим по координатам клетки ее индекс в std::vector<Pawn> black_pawns
+			// чтобы вернуть результат
+			if (it.second != Move::BLOCKED) {
+				for (int i = 0; i < pawns.size(); ++i) {
+					if (pawns[i].pos.x == it.first.position_on_map.x &&
+							pawns[i].pos.y == it.first.position_on_map.y) {
+						result.push_back(i);
+					}
+				}
+			}
+		}
 	}
+
 	return std::move(result);
 }
 
@@ -338,12 +434,44 @@ Board::Move Board::GetMoveDirection(const Pawn& pawn, const bool is_advance) con
 		else move = Move::DOWN;
 	}
 	else {
-		if (pawn.is_move_left && pawn.pos.x >= BOARD_SIZE / 2) move = Move::LEFT;
-		else if (pawn.is_move_up) move = Move::UP;
-		if (pawn.is_move_up && pawn.pos.y <= BOARD_SIZE / 2) move = Move::UP;
-		else if (pawn.is_move_left) move = Move::LEFT;
-		if (pawn.pos.y == 3) move = Move::LEFT;
-		if (pawn.pos.x == 4) move = Move::UP;
+		move = GetMoveForBypass(pawn.pos);
 	}
 	return move;
+}
+
+Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
+	const int right_x = pos.x + 1;
+	const int up_y = pos.y + 1;
+	const int left_x = pos.x - 1;
+	const int down_y = pos.y - 1;
+	Move result = BLOCKED;
+	// проверяем диагональную клетку (вверх+вправо) на выход за границы доски
+	if (right_x < BOARD_SIZE && up_y < BOARD_SIZE) {
+		// свободна ли она
+		if (board[right_x][up_y].status == CellStatus::FREE) {
+			// можно ли будет обойти сверху?
+			if (board[pos.x][up_y].status == CellStatus::FREE) {
+				// если препятствие справа, обходим через верх
+				if (board[right_x][pos.y].status != CellStatus::FREE
+						&& (pos.y > 3 || down_y < 0 || pos.y == 3)) {
+					result = Move::UP;
+				}
+			}
+		}
+	}
+	// проверяем диагональную клетку (вниз+влево) на выход за границы доски
+	if (left_x >= 0 && down_y >= 0) {
+		// свободна ли она
+		if (board[left_x][down_y].status == CellStatus::FREE) {
+			// можно ли будет обойти свлева?
+			if (board[left_x][pos.y].status == CellStatus::FREE) {
+				// если препятствие снизу, обходим слева
+				if (board[pos.x][down_y].status != CellStatus::FREE &&
+						(pos.x < 4 || right_x == BOARD_SIZE || pos.x == 4))	{
+					result = Move::LEFT;
+				}
+			}
+		}
+	}
+	return result;
 }

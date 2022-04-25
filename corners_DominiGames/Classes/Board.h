@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <algorithm>
 #include <ctime>
 #include <exception>
 
@@ -99,6 +100,7 @@ private:
 	void SetBadPosition(Pawn& pawn);
 	void ResetBadPosition(Pawn& pawn);
 	Move GetMoveDirection(const Pawn& pawn, const bool is_advance) const;
+	Move GetMoveForBypass(const cocos2d::Vec2& pawn) const;
 	void ResetAllPawnsFlags(std::vector<Pawn>& pawns);
 	void SetPawnsFlags(std::vector<Pawn>& pawns);
 
