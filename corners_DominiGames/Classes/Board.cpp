@@ -448,7 +448,7 @@ Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
 	// проверяем диагональную клетку (вверх+вправо) на выход за границы доски
 	if (right_x < BOARD_SIZE && up_y < BOARD_SIZE) {
 		// свободна ли она
-		if (board[right_x][up_y].status == CellStatus::FREE) {
+		if (board[right_x][up_y].status != CellStatus::WHITE) {
 			// можно ли будет обойти сверху?
 			if (board[pos.x][up_y].status == CellStatus::FREE) {
 				// если препятствие справа, обходим через верх
@@ -462,7 +462,7 @@ Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
 	// проверяем диагональную клетку (вниз+влево) на выход за границы доски
 	if (left_x >= 0 && down_y >= 0) {
 		// свободна ли она
-		if (board[left_x][down_y].status == CellStatus::FREE) {
+		if (board[left_x][down_y].status != CellStatus::WHITE) {
 			// можно ли будет обойти свлева?
 			if (board[left_x][pos.y].status == CellStatus::FREE) {
 				// если препятствие снизу, обходим слева
