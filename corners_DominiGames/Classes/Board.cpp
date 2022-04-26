@@ -453,7 +453,7 @@ Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
 			if (board[pos.x][up_y].status == CellStatus::FREE) {
 				// если препятствие справа, обходим через верх
 				if (board[right_x][pos.y].status != CellStatus::FREE
-						&& (pos.y > 3 || down_y < 0 || pos.y == 3)) {
+						&& (pos.y > 3 || down_y < 0 || pos.x == 3)) {
 					result = Move::UP;
 				}
 			}
@@ -467,7 +467,7 @@ Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
 			if (board[left_x][pos.y].status == CellStatus::FREE) {
 				// если препятствие снизу, обходим слева
 				if (board[pos.x][down_y].status != CellStatus::FREE &&
-						(pos.x < 4 || right_x == BOARD_SIZE || pos.x == 4))	{
+						(pos.x < 4 || right_x == BOARD_SIZE || pos.y == 4))	{
 					result = Move::LEFT;
 				}
 			}
