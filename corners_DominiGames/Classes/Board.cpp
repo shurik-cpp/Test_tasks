@@ -4,9 +4,9 @@ USING_NS_CC; // using namespace cocos2d
 
 // BoardMap - это std::vector<std::vector<Cell>>
 BoardMap Board::BuildBoard() {
-	board.resize(8);
+	board.resize(BOARD_SIZE);
 	for (auto& it : board) {
-		it.resize(8);
+		it.resize(BOARD_SIZE);
 	}
 	// создаем игровое поле 8х8
 	bool is_green = true;
@@ -35,15 +35,15 @@ BoardMap Board::BuildBoard() {
 	white_pawns = ArrangeCheckers(CellStatus::WHITE);
 
 	// добавим подписи для каждой клетки (для удобства, потом УДАЛИТЬ)
-	for (int y = 0; y < BOARD_SIZE; ++y) {
-		for (int x = 0; x < BOARD_SIZE; ++x) {
-			board[x][y].label = Label::create();
-			board[x][y].label->setColor(Color3B::GRAY);
-			board[x][y].label->setAnchorPoint(Vec2(0.5, 0.5));
-			board[x][y].RefreshLable();
-			board[x][y].label->setPosition(board[x][y].cell_sprite->getPosition());
-		}
-	}
+//	for (int y = 0; y < BOARD_SIZE; ++y) {
+//		for (int x = 0; x < BOARD_SIZE; ++x) {
+//			board[x][y].label = Label::create();
+//			board[x][y].label->setColor(Color3B::GRAY);
+//			board[x][y].label->setAnchorPoint(Vec2(0.5, 0.5));
+//			board[x][y].RefreshLable();
+//			board[x][y].label->setPosition(board[x][y].cell_sprite->getPosition());
+//		}
+//	}
 	return board;
 }
 
@@ -96,7 +96,7 @@ const Cell& Board::GetCellByTouch(const Vec2& touchLocation) const {
 			}
 		}
 	}
-	// warning - не наше..
+	// если кликнули мимо игральной доски бросаем исключение (чтобы warning'а не было)
 	throw std::out_of_range("Touch is not possible\n");
 }
 
@@ -113,10 +113,10 @@ void Board::MoveIsPosibleTo(const Vec2& move_to) {
 			target_cell.pawn_sprite = choised_pawn->pawn_sprite;
 			target_cell.pawn_sprite->setPosition(target_cell.cell_sprite->getPosition());
 			target_cell.status = choised_pawn->status;
-			target_cell.RefreshLable(); // обновим подпись клетки (для удобства, потом УДАЛИТЬ)
+			//target_cell.RefreshLable(); // обновим подпись клетки (для удобства, потом УДАЛИТЬ)
 			choised_pawn->pawn_sprite->setColor(Color3B(Color3B::WHITE));
 			choised_pawn->status = CellStatus::FREE;
-			choised_pawn->RefreshLable(); // обновим подпись клетки (для удобства, потом УДАЛИТЬ)
+			//choised_pawn->RefreshLable(); // обновим подпись клетки (для удобства, потом УДАЛИТЬ)
 			choised_pawn->pawn_sprite = nullptr;
 			choised_pawn->choised = false;
 			choised_pawn = nullptr;
@@ -200,9 +200,9 @@ void Board::AiMove() {
 	board[new_pos.x][new_pos.y].pawn_sprite->setPosition(new_sprite_pos);
 	// не забываем поменять статусы клеток на поле
 	board[last_pos.x][last_pos.y].status = CellStatus::FREE;
-	board[last_pos.x][last_pos.y].RefreshLable(); //(для удобства, потом УДАЛИТЬ)
+	//board[last_pos.x][last_pos.y].RefreshLable(); //(для удобства, потом УДАЛИТЬ)
 	board[new_pos.x][new_pos.y].status = CellStatus::BLACK;
-	board[new_pos.x][new_pos.y].RefreshLable(); //(для удобства, потом УДАЛИТЬ)
+	//board[new_pos.x][new_pos.y].RefreshLable(); //(для удобства, потом УДАЛИТЬ)
 
 	this->ChangePlayer();
 }
@@ -448,7 +448,7 @@ Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
 	// проверяем диагональную клетку (вверх+вправо) на выход за границы доски
 	if (right_x < BOARD_SIZE && up_y < BOARD_SIZE) {
 		// свободна ли она
-		if (board[right_x][up_y].status != CellStatus::WHITE) {
+		//if (board[right_x][up_y].status != CellStatus::WHITE) {
 			// можно ли будет обойти сверху?
 			if (board[pos.x][up_y].status == CellStatus::FREE) {
 				// если препятствие справа, обходим через верх
@@ -457,13 +457,13 @@ Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
 					result = Move::UP;
 				}
 			}
-		}
+		//}
 	}
 	// проверяем диагональную клетку (вниз+влево) на выход за границы доски
 	if (left_x >= 0 && down_y >= 0) {
 		// свободна ли она
-		if (board[left_x][down_y].status != CellStatus::WHITE) {
-			// можно ли будет обойти свлева?
+		//if (board[left_x][down_y].status != CellStatus::WHITE) {
+			// можно ли будет обойти слева?
 			if (board[left_x][pos.y].status == CellStatus::FREE) {
 				// если препятствие снизу, обходим слева
 				if (board[pos.x][down_y].status != CellStatus::FREE &&
@@ -471,7 +471,7 @@ Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
 					result = Move::LEFT;
 				}
 			}
-		}
+		//}
 	}
 	return result;
 }

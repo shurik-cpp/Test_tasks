@@ -36,20 +36,18 @@ bool GameScene::init() {
 	if (!Scene::init())	return false;
 
 	board = std::make_shared<Board>();
-	int x__ = 0;
-	for (const auto& x : board->BuildBoard()) {
-		int y__ = 0;
-		for (const auto& cell : x) {
+
+	for (const auto& line : board->BuildBoard()) {
+		for (const auto& cell : line) {
 			// рисуем игровую доску
 			this->addChild(cell.cell_sprite, SLayer::BOARD);
+			// рисуем пешки
 			if (cell.pawn_sprite) this->addChild(cell.pawn_sprite, SLayer::PAWN);
 			// подписываем клетки (для удобства, потом УДАЛИТЬ)
-			this->addChild(cell.label, SLayer::LABEL);
-			++y__;
+			//this->addChild(cell.label, SLayer::LABEL);
 		}
-		++x__;
 	}
-
+	// добавим обработчик событий касания (клика мыши)
 	auto touchListener = EventListenerTouchOneByOne::create();
 	touchListener->onTouchBegan = CC_CALLBACK_2(GameScene::onTouchBegan, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, this);
@@ -73,7 +71,9 @@ bool GameScene::onTouchBegan(Touch* touch, Event* unused_event) {
 			//std::cerr << "hit_cell_pos.x = " << cell_pos.x << "\nhit_cell_pos.y = " << cell_pos.y << '\n';
 			// проверка, попали ли пальцем в свою шашку
 			if (hit_cell.status == CellStatus::WHITE) { // || hit_cell.status == CellStatus::BLACK) {
-				if (board->IsChoised()) board->CancelChoise(cell_pos);
+				if (board->IsChoised()) {
+					board->CancelChoise(cell_pos);
+				}
 				board->SetChoised(cell_pos);
 			}
 			else if (hit_cell.status == CellStatus::FREE && board->IsChoised()) {
@@ -92,5 +92,3 @@ void GameScene::update(float delta) {
 		}
 	}
 }
-
-
