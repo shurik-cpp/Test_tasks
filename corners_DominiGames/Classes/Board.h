@@ -9,7 +9,7 @@
 #include <ctime>
 #include <exception>
 
-enum CellStatus { BLACK = -1, FREE, WHITE };
+enum CellStatus { BLACK = -1, FREE = 0, WHITE, DEAD_HEAT };
 
 struct Cell {
 	cocos2d::Sprite* cell_sprite = nullptr; // спрайт клетки
@@ -45,7 +45,8 @@ public:
 	const Cell& GetCellByTouch(const cocos2d::Vec2& touchLocation) const;
 
 	bool IsInGame() { return !is_game_over; }
-	//std::string GetWinner();
+	std::string GetWinner() const;
+	bool IsWinner();
 
 	bool IsChoised() const { return choised_pawn; }
 	void SetChoised(const cocos2d::Vec2& coordinates);
@@ -82,6 +83,7 @@ private:
 	std::vector<Pawn> white_pawns;
 	Cell* choised_pawn = nullptr;
 	bool is_game_over = false;
+	CellStatus winner = CellStatus::FREE;
 	bool ai_move = false; // хранит чей сейчас ход
 	size_t bypassed_index = 0;
 
@@ -91,9 +93,9 @@ private:
 	void ChangePlayer() { ai_move = !ai_move; }
 	std::vector<Pawn> ArrangeCheckers(const CellStatus color = WHITE);
 
-	enum Move {RIGHT, DOWN, BLOCKED, LEFT, UP};
+	enum Move {RIGHT, DOWN, BLOCKED, LEFT = 3, UP = 4};
 
-	int GetRandomNumber(int min, int max);
+	int GetRandomNumber(const int min, const int max) const;
 	std::vector<size_t> GetNonBlockedPawnsForAdvance(const std::vector<Pawn>& pawns) const;
 	std::vector<size_t> GetNonBlockedPawnsForBypass(const std::vector<Board::Pawn>& pawns) const;
 	std::unordered_map<char, std::pair<int, int>> CheckRedZones(const CellStatus color) const;

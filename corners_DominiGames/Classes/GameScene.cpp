@@ -89,6 +89,16 @@ void GameScene::update(float delta) {
 	if (board->IsInGame()) {
 		if (board->IsAiMove()) {
 			board->AiMove();
+			if (board->IsWinner()) {
+				auto director = Director::getInstance();
+				auto label = Label::create();
+				label->setString(board->GetWinner());
+				label->setColor(Color3B::BLACK);
+				label->setScale(2, 2);
+				auto window_size = director->getWinSize();
+				label->setPosition(Vec2(window_size.height / 2, window_size.width / 2));
+				this->addChild(label, SLayer::LABEL);
+			}
 		}
 	}
 }

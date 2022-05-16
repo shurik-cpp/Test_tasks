@@ -129,7 +129,7 @@ void Board::MoveIsPosibleTo(const Vec2& move_to) {
 	}
 }
 
-int Board::GetRandomNumber(int min, int max) {
+int Board::GetRandomNumber(const int min, const int max) const {
 	// Установим начальную точку генерирования последовательности относительно time(NULL)
 	srand(time(NULL));
 	return min + rand() % (max - min + 1);
@@ -156,7 +156,7 @@ void Board::AiMove() {
 
 	if (non_blocked.size() == 0) {
 		is_game_over = true;
-		std::cerr << "Game over!" << std::endl;
+		std::cerr << "Game over! No possible move." << std::endl;
 		return;
 	}
 
@@ -275,6 +275,15 @@ void Board::SetPawnsFlags(std::vector<Pawn>& pawns) {
 		// Третья стадия:
 		// проверка на плохую позицию
 		// запоминаем плохую позицию
+
+		// Если режим обхода и освободилась диагональная (вправо-вниз) клетка, сбрасываем флаг обхода
+		if (pawn.is_bypass) {
+			if (forward_x != BOARD_SIZE && forward_y >= 0) {
+				if (board[forward_x][forward_y].status == CellStatus::FREE) {
+					pawn.is_bypass = false;
+				}
+			}
+		}
 		if (!pawn.is_move_right && !pawn.is_move_down) {
 			pawn.is_bypass = true;
 			SetBadPosition(pawn);
@@ -335,7 +344,6 @@ std::vector<size_t> Board::GetNonBlockedPawnsForBypass(const std::vector<Board::
 
 		std::vector<Cell> cells_whith_black_pawn;
 		// пробежимся по доске и возьмем все черные, которые еще не "дома"
-
 		for (int y = 0; y < BOARD_SIZE; ++y) {
 			for (int x = 0; x < BOARD_SIZE; ++x) {
 				const Cell& cell = board[x][y];
@@ -348,8 +356,8 @@ std::vector<size_t> Board::GetNonBlockedPawnsForBypass(const std::vector<Board::
 							bool is_good = true;
 							for (const auto it : tmp) {
 								if (cell.position_on_map.x == it.first.position_on_map.x &&
-										cell.position_on_map.y == it.first.position_on_map.y) continue;
-								else is_good = false;
+										cell.position_on_map.y == it.first.position_on_map.y) is_good = false;
+								else continue;
 							}
 							// если не совпала ни с одним из tmp пушим в cells_whith_black_pawn
 							// для последующих проверок
@@ -359,33 +367,40 @@ std::vector<size_t> Board::GetNonBlockedPawnsForBypass(const std::vector<Board::
 				}
 			}
 		}
-		cerr << "cells_with_black_pawn:" <<endl;
+		if (cells_whith_black_pawn.size() == 0) return result;
+		cerr << "cells_with_black_pawn:" << endl;
 		for (const auto& it : cells_whith_black_pawn) {
 			cerr << 'x' << it.position_on_map.x << ", y" << it.position_on_map.y << endl;
 		}
 		cerr << "Bypass step 2 sorting by y:" << endl;
-		// сортируем по min_y и берем первый элемент в массив tmp
-		std::stable_sort(begin(cells_whith_black_pawn), end(cells_whith_black_pawn),
-										 [](const Cell& lhs, const Cell& rhs) {
-			return lhs.position_on_map.y < rhs.position_on_map.y;
-		});
-		for (const auto& it : cells_whith_black_pawn) {
-			cerr << 'x' << it.position_on_map.x << ", y" << it.position_on_map.y << endl;
-		}
-		cerr << "Bypass step 3 sorting by x:" << endl;
-		tmp.push_back(std::make_pair(cells_whith_black_pawn.front(), Move::BLOCKED));
+		if (cells_whith_black_pawn.size() > 2) {
+			// сортируем по min_y и берем первый элемент в массив tmp
+			std::stable_sort(begin(cells_whith_black_pawn), end(cells_whith_black_pawn),
+											 [](const Cell& lhs, const Cell& rhs) {
+				return lhs.position_on_map.y < rhs.position_on_map.y;
+			});
+			cerr << "After sorting by y:" << endl;
+			for (const auto& it : cells_whith_black_pawn) {
+				cerr << 'x' << it.position_on_map.x << ", y" << it.position_on_map.y << endl;
+			}
+			cerr << "Bypass step 3 sorting by x:" << endl;
+			tmp.push_back(std::make_pair(cells_whith_black_pawn.front(), Move::BLOCKED));
 
-		// теперь сортируем по max_x и снова берем первый элемент
-		std::stable_sort(begin(cells_whith_black_pawn), end(cells_whith_black_pawn),
-										 [](const Cell& lhs, const Cell& rhs) {
-			return lhs.position_on_map.x > rhs.position_on_map.x;
-		});
-		for (const auto& it : cells_whith_black_pawn) {
-			cerr << 'x' << it.position_on_map.x << ", y" << it.position_on_map.y << endl;
+			// теперь сортируем по max_x и снова берем первый элемент
+			std::stable_sort(begin(cells_whith_black_pawn), end(cells_whith_black_pawn),
+											 [](const Cell& lhs, const Cell& rhs) {
+				return lhs.position_on_map.x > rhs.position_on_map.x;
+			});
+			cerr << "After sorting by x:" << endl;
+			for (const auto& it : cells_whith_black_pawn) {
+				cerr << 'x' << it.position_on_map.x << ", y" << it.position_on_map.y << endl;
+			}
 		}
-		if (cells_whith_black_pawn.size() > 2) tmp.push_back(std::make_pair(cells_whith_black_pawn.front(), Move::BLOCKED));
-		else tmp.push_back(std::make_pair(cells_whith_black_pawn.back(), Move::BLOCKED));
-		cerr << "tmp: " << endl;
+		if (cells_whith_black_pawn.size() > 0) {
+			if (cells_whith_black_pawn.size() > 2) tmp.push_back(std::make_pair(cells_whith_black_pawn.front(), Move::BLOCKED));
+			else tmp.push_back(std::make_pair(cells_whith_black_pawn.back(), Move::BLOCKED));
+		}
+			cerr << "tmp: " << endl;
 		for (const auto& it : tmp) {
 			cerr << 'x' << it.first.position_on_map.x << ", y" << it.first.position_on_map.y << endl;
 		}
@@ -422,6 +437,42 @@ void Board::ResetBadPosition(Pawn& pawn) {
 	pawn.last_bad_pos = Vec2(255, 255);
 }
 
+bool Board::IsWinner() {
+	int black_counter = 0;
+	int white_counter = 0;
+	for (int y = 0; y < BOARD_SIZE; ++y) {
+		for (int x = 0; x < BOARD_SIZE; ++x) {
+			if (x > 4 && y < 3 && board[x][y].status == CellStatus::BLACK) {
+				black_counter++;
+			}
+			if (x < 3 && y > 4 && board[x][y].status == CellStatus::WHITE) {
+				white_counter++;
+			}
+		}
+	}
+	if (black_counter == 9 && white_counter == 9) winner = CellStatus::DEAD_HEAT;
+	else if (black_counter == 9 && white_counter < 9) winner = CellStatus::BLACK;
+	else if (black_counter < 9 && white_counter == 9) winner = CellStatus::WHITE;
+	else winner = CellStatus::FREE;
+
+	if (!is_game_over) is_game_over = static_cast<bool>(winner);
+	else {
+		if (black_counter == white_counter) winner = CellStatus::DEAD_HEAT;
+		else if (black_counter > white_counter) winner = CellStatus::BLACK;
+		else if (black_counter < white_counter) winner = CellStatus::WHITE;
+	}
+
+	return is_game_over;
+}
+
+std::string Board::GetWinner() const {
+	std::string result;
+	if (winner == CellStatus::DEAD_HEAT) result = "Dead Heat!";
+	else if (winner == CellStatus::BLACK) result = "Black winner!";
+	else if (winner == CellStatus::WHITE) result = "White winner!";
+	return result;
+}
+
 Board::Move Board::GetMoveDirection(const Pawn& pawn, const bool is_advance) const {
 	Move move = BLOCKED;
 	if (is_advance) {
@@ -444,34 +495,38 @@ Board::Move Board::GetMoveForBypass(const Vec2& pos) const {
 	const int up_y = pos.y + 1;
 	const int left_x = pos.x - 1;
 	const int down_y = pos.y - 1;
+	bool both_move = false;
 	Move result = BLOCKED;
 	// проверяем диагональную клетку (вверх+вправо) на выход за границы доски
 	if (right_x < BOARD_SIZE && up_y < BOARD_SIZE) {
 		// свободна ли она
-		//if (board[right_x][up_y].status != CellStatus::WHITE) {
-			// можно ли будет обойти сверху?
-			if (board[pos.x][up_y].status == CellStatus::FREE) {
-				// если препятствие справа, обходим через верх
-				if (board[right_x][pos.y].status != CellStatus::FREE
-						&& (pos.y > 3 || down_y < 0 || pos.x == 4)) {
-					result = Move::UP;
-				}
+		// можно ли будет обойти сверху?
+		if (board[pos.x][up_y].status == CellStatus::FREE) {
+			// если препятствие справа, обходим через верх
+			if (board[right_x][pos.y].status != CellStatus::FREE ||
+					down_y < 0) {//&& (pos.y >= 3 || down_y < 0 || pos.x == 4)) {
+				result = Move::UP;
 			}
-		//}
+		}
 	}
 	// проверяем диагональную клетку (вниз+влево) на выход за границы доски
 	if (left_x >= 0 && down_y >= 0) {
 		// свободна ли она
-		//if (board[left_x][down_y].status != CellStatus::WHITE) {
-			// можно ли будет обойти слева?
-			if (board[left_x][pos.y].status == CellStatus::FREE) {
-				// если препятствие снизу, обходим слева
-				if (board[pos.x][down_y].status != CellStatus::FREE &&
-						(pos.x < 4 || right_x == BOARD_SIZE || pos.y == 3))	{
-					result = Move::LEFT;
-				}
+		// можно ли будет обойти слева?
+		if (board[left_x][pos.y].status == CellStatus::FREE) {
+			// если препятствие снизу, обходим слева
+			if (board[pos.x][down_y].status != CellStatus::FREE ||
+					right_x == BOARD_SIZE) {// && (pos.x <= 4 || right_x == BOARD_SIZE || pos.y == 3))	{
+				if (result == Move::UP) both_move = true;
+				result = Move::LEFT;
 			}
-		//}
+		}
 	}
+	if (both_move) {
+		if (pos.x < 4 && pos.y < 4) result = Move::LEFT;
+		else if (pos.y > 3 && pos.x > 3) result = Move::UP;
+		else result = static_cast<Move>(GetRandomNumber(static_cast<int>(Move::LEFT), static_cast<int>(Move::UP)));
+	}
+
 	return result;
 }
