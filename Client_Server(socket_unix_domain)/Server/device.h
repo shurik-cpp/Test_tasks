@@ -17,7 +17,6 @@ enum ChannelState {
 
 struct Channel {
 	int channel;
-	int value = -1;
 	int range = 1;
 	float voltage;
 

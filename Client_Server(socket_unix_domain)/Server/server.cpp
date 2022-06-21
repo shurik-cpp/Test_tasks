@@ -1,10 +1,5 @@
 #include "server.h"
 
-#include <iostream>
-#include <exception>
-#include <future>
-
-
 using namespace std;
 
 bool operator< (const pollfd& lhs, const pollfd& rhs) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -8,7 +9,6 @@
 #include <poll.h>
 #include <set>
 #include <cstdlib>
-#include <string>
 
 #include "handler.h"
 #include "device.h"
