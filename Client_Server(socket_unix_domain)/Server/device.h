@@ -7,7 +7,6 @@
 #include <random>
 #include <cassert>
 
-
 enum ChannelState {
 	ERROR = 0,
 	BUSY,
@@ -24,8 +23,6 @@ struct Channel {
 
 	ChannelState state = IDLE;
 };
-
-//std::ostream& operator<< (std::ostream& s, const Params& p);
 
 class Device {
 public:

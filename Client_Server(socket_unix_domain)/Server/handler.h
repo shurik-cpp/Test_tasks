@@ -10,6 +10,8 @@ struct Params {
 	int value = -1;
 };
 
+std::ostream& operator<< (std::ostream& s, const Params& p);
+
 class Handler {
 public:
 	Handler(const std::string& comm, const std::vector<Params>& params);

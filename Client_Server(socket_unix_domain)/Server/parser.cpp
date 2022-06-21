@@ -24,27 +24,30 @@ vector<string> SplitIntoWords(const string& str) {
 }
 
 Handler ParseRequest(const string s) {
-	vector<Params> result;
-	vector<string> parametrs = SplitIntoWords(s);
-	string command = parametrs[0];
-	for (size_t i = 1; i < parametrs.size(); ++i) {
-		string& param = parametrs[i];
-		Params val;
-		if (param[0] == 'c') {
-			auto it = find(begin(param), end(param), 'l');
-			param.erase(begin(param), ++it);
-			// в строке param остался только номер канала
-			val.channel = stoi(param);
-			// проверим следущий параметр, если range, получаем его значение
-			if ((i + 1 < parametrs.size()) && (parametrs[i + 1][0] == 'r')) {
-				param = parametrs[++i];
-				it = find(begin(param), end(param), 'e');
+	vector<string> splitted = SplitIntoWords(s);
+	string command;
+	vector<Params> parametrs;
+	if (!splitted.empty()) {
+		command = splitted[0];
+		for (size_t i = 1; i < splitted.size(); ++i) {
+			string& param = splitted[i];
+			Params val;
+			if (param[0] == 'c') {
+				auto it = find(begin(param), end(param), 'l');
 				param.erase(begin(param), ++it);
-				// в строке param осталось только значение range
-				val.value = stoi(param);
+				// в строке param остался только номер канала
+				val.channel = stoi(param);
+				// проверим следущий параметр, если range, получаем его значение
+				if ((i + 1 < splitted.size()) && (splitted[i + 1][0] == 'r')) {
+					param = splitted[++i];
+					it = find(begin(param), end(param), 'e');
+					param.erase(begin(param), ++it);
+					// в строке param осталось только значение range
+					val.value = stoi(param);
+				}
 			}
+			parametrs.push_back(val);
 		}
-		result.push_back(val);
 	}
-	return Handler(command, result);
+	return Handler(command, parametrs);
 }
