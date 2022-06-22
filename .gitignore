@@ -1,3 +1,3 @@
-build-corners_DominiGames-Desktop-Debug/
-build-corners_DominiGames-Android_Qt_5_12_12_Clang_arm64_v8a-Release/
-build-corners_DominiGames-Android_Qt_5_12_12_Clang_arm64_v8a-Debug/
+Client_Server(socket_unix_domain)/build-Client_console-Desktop_Qt_5_12_12_GCC_64bit-Debug/
+Client_Server(socket_unix_domain)/build-Server-Desktop_Qt_5_12_12_GCC_64bit-Debug/
+Client_Server(socket_unix_domain)/Server/Server.pro.user
