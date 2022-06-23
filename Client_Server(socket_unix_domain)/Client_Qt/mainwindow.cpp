@@ -39,6 +39,9 @@ void MainWindow::onTimerAlarm() {
 		else {
 			ActivateButtons(false);
 			statusBar()->showMessage("Error: Connection lost.", 3000);
+			socket->disconnectFromServer();
+			delete socket;
+			socket = nullptr;
 		}
 	}
 }

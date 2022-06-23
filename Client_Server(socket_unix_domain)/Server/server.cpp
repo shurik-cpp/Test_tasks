@@ -164,7 +164,7 @@ void SocketThread::RunServer() {
 					Handler handler = ParseRequest(buffer);
 					handler.PollTheDevice(&device);
 					string answer = handler.GetResult();
-					cout << answer << endl;
+					if (answer != "ok, ping") cout << answer << endl;
 					if (answer == "ok, close") {
 						 if (clients.size() > 1) {
 							 answer = "Failure: There are other clients";
