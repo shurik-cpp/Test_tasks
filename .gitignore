@@ -1,3 +1,4 @@
 Client_Server(socket_unix_domain)/build-Client_console-Desktop_Qt_5_12_12_GCC_64bit-Debug/
 Client_Server(socket_unix_domain)/build-Server-Desktop_Qt_5_12_12_GCC_64bit-Debug/
 Client_Server(socket_unix_domain)/Server/Server.pro.user
+Client_Server(socket_unix_domain)/build-Client_Qt-Desktop_Qt_5_12_12_GCC_64bit-Debug/
