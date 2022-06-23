@@ -27,7 +27,7 @@ class Device {
 public:
 	Device(const size_t number_of_channels);
 	std::string GetState(const size_t channel_number) const;
-	std::string GetMessure(const size_t channel_number);
+	std::string GetMeasure(const size_t channel_number);
 	bool SetRange(const size_t channel_number, const int new_range);
 	bool StartMeasure(const size_t channel_number);
 	bool StopMeasure(const size_t channel_number);

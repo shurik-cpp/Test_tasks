@@ -45,7 +45,7 @@ string Device::GetState(const size_t channel_number) const {
 	if (!IsChannelEnable(channel_number)) return "";
 	return CHANNEL_STATE[channels[channel_number].state];
 }
-string Device::GetMessure(const size_t channel_number) {
+string Device::GetMeasure(const size_t channel_number) {
 	if (!IsChannelEnable(channel_number) || !channels[channel_number].state) return "";
 	Channel& ch = channels[channel_number];
 	string voltage;

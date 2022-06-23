@@ -35,7 +35,7 @@ void MainWindow::onTimerAlarm() {
 
 		char buff[BUFFER_SIZE];
 		memset(buff, '\0', sizeof(char));
-		if (socket->waitForReadyRead(250)) socket->read(buff, BUFFER_SIZE);
+		if (socket && socket->waitForReadyRead(250)) socket->read(buff, BUFFER_SIZE);
 		else {
 			ActivateButtons(false);
 			statusBar()->showMessage("Error: Connection lost.", 3000);
@@ -91,21 +91,22 @@ void MainWindow::on_channel3_checkBox_stateChanged()
 }
 
 bool MainWindow::Connect() {
-	socket = new QLocalSocket;
-	const QString home_path(getenv("HOME"));
-	socket_path = home_path + "/.cache/.server-socket";
-	socket->connectToServer(socket_path);
+	if (!socket) {
+		socket = new QLocalSocket;
+		const QString home_path(getenv("HOME"));
+		socket_path = home_path + "/.cache/.server-socket";
+		socket->connectToServer(socket_path);
+	}
 	return socket->isOpen();
 }
 
 bool MainWindow::Disconnect() {
-	bool result = true;
 	if (socket) {
 		socket->disconnectFromServer();
-		result = !socket->isOpen();
 		delete socket;
+		socket = nullptr;
 	}
-	return result;
+	return static_cast<bool>(socket);
 }
 
 void MainWindow::ActivateButtons(const bool is_active) {
@@ -127,9 +128,8 @@ void MainWindow::on_connect_pushButton_clicked()
 
 void MainWindow::on_disconnect_pushButton_clicked()
 {
-	bool is_disconnect = Connect();
 	ActivateButtons(Disconnect());
-	if (is_disconnect) statusBar()->showMessage("Disconnected.", 3000);
+	if (!socket) statusBar()->showMessage("Disconnected.", 3000);
 }
 
 void MainWindow::on_exit_pushButton_clicked()

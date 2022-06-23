@@ -32,17 +32,16 @@ void Handler::PollTheDevice(Device* device) {
 			additional_info = ", params is empty";
 		}
 		for (auto& param : parametrs) {
-			bool is_channel_ok = true;
 			is_global_ok = device->IsChannelError(param.channel);
 
 			if (command == "start_measure") {
-				is_channel_ok = device->StartMeasure(param.channel);
+				is_global_ok = device->StartMeasure(param.channel);
 			}
 			else if (command == "set_range") {
-				is_channel_ok = device->SetRange(param.channel, param.value);
+				is_global_ok = device->SetRange(param.channel, param.value);
 			}
 			else if (command == "stop_measure") {
-				is_channel_ok = device->StopMeasure(param.channel);
+				is_global_ok = device->StopMeasure(param.channel);
 			}
 			else if (command == "get_status") {
 				additional_info += ", " +device->GetState(param.channel);
@@ -50,15 +49,13 @@ void Handler::PollTheDevice(Device* device) {
 			else if (command == "get_result") {
 				additional_info += ", ";
 				size_t last_size = additional_info.size();
-				additional_info += device->GetMessure(param.channel);
-				if (additional_info.size() == last_size) is_channel_ok = false;
+				additional_info += device->GetMeasure(param.channel);
+				if (additional_info.size() == last_size) is_global_ok = false;
 			}
 			else {
 				additional_info = ", unknown_command";
 				is_global_ok = false;
 			}
-
-			if (!is_channel_ok) is_global_ok = false;
 		}
 
 		if (is_global_ok) {
