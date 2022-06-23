@@ -25,6 +25,7 @@ void Handler::PollTheDevice(Device* device) {
 
 	string additional_info;
 	if (command == "close") result_message = "ok, " + command;
+	else if (command == "ping") result_message = "ok";
 	else {
 		if (parametrs.size() == 0) {
 			is_global_ok = false;

@@ -5,6 +5,7 @@
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QLabel>
+#include <QTimer>
 #include <set>
 #include <vector>
 #include <iostream>
@@ -27,6 +28,7 @@ public:
 	~MainWindow();
 
 private slots:
+	void onTimerAlarm();
 
 	void on_channel0_checkBox_stateChanged();
 	void on_channel1_checkBox_stateChanged();
@@ -34,13 +36,12 @@ private slots:
 	void on_channel3_checkBox_stateChanged();
 
 	void on_connect_pushButton_clicked();
-
 	void on_disconnect_pushButton_clicked();
-
 	void on_exit_pushButton_clicked();
 
+	void on_start_measure_pushButton_clicked();
+	void on_stop_measure_pushButton_clicked();
 	void on_get_status_pushButton_clicked();
-
 	void on_get_result_pushButton_clicked();
 
 	void on_channel0_range0_radioButton_clicked();
@@ -63,17 +64,13 @@ private slots:
 	void on_channel3_range2_radioButton_clicked();
 	void on_channel3_range3_radioButton_clicked();
 
-
-
-	void on_start_measure_pushButton_clicked();
-
-	void on_stop_measure_pushButton_clicked();
-
 private:
 	Ui::MainWindow *ui;
 	const qint64 BUFFER_SIZE = 8192;
 	QLocalSocket* socket;
 	QString socket_path;
+	const int POLLING_FREQUENCY = 1000;
+	QTimer *timer;
 
 	bool Connect();
 	bool Disconnect();

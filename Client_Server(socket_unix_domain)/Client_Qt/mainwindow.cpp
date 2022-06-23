@@ -6,6 +6,12 @@ MainWindow::MainWindow(QWidget *parent)
 	, ui(new Ui::MainWindow)
 {
 	ui->setupUi(this);
+
+	// Инициализируем Таймер и подключим его к слоту,
+	// который будет обрабатывать timeout() таймера
+	timer = new QTimer();
+	connect(timer, SIGNAL(timeout()), this, SLOT(onTimerAlarm()));
+	timer->start(POLLING_FREQUENCY); // И запустим таймер
 }
 
 MainWindow::~MainWindow()
@@ -14,7 +20,27 @@ MainWindow::~MainWindow()
 		delete socket;
 		socket = nullptr;
 	}
+	if (timer) {
+		delete timer;
+		timer = nullptr;
+	}
 	delete ui;
+}
+
+void MainWindow::onTimerAlarm() {
+	if (socket) {
+		std::string request = "ping";
+		std::cerr << request << std::endl;
+		socket->write(request.c_str(), request.size());
+
+		char buff[BUFFER_SIZE];
+		memset(buff, '\0', sizeof(char));
+		if (socket->waitForReadyRead(250)) socket->read(buff, BUFFER_SIZE);
+		else {
+			ActivateButtons(false);
+			statusBar()->showMessage("Error: Connection lost.", 3000);
+		}
+	}
 }
 
 void MainWindow::SetBoxStatus(QGroupBox* gb1, QGroupBox* gb2, const QCheckBox* cb) {
@@ -96,14 +122,12 @@ void MainWindow::on_connect_pushButton_clicked()
 	else statusBar()->showMessage("Error: Server not found.", 3000);
 }
 
-
 void MainWindow::on_disconnect_pushButton_clicked()
 {
 	bool is_disconnect = Connect();
 	ActivateButtons(Disconnect());
 	if (is_disconnect) statusBar()->showMessage("Disconnected.", 3000);
 }
-
 
 void MainWindow::on_exit_pushButton_clicked()
 {
@@ -134,7 +158,6 @@ void MainWindow::on_get_status_pushButton_clicked()
 	}
 	socket->flush();
 }
-
 
 void MainWindow::on_get_result_pushButton_clicked()
 {
@@ -220,7 +243,6 @@ void MainWindow::on_start_measure_pushButton_clicked()
 	statusBar()->showMessage(data[0], 3000);
 	socket->flush();
 }
-
 
 void MainWindow::on_stop_measure_pushButton_clicked()
 {
