@@ -44,7 +44,7 @@ void Handler::PollTheDevice(Device* device) {
 				is_global_ok = device->StopMeasure(param.channel);
 			}
 			else if (command == "get_status") {
-				additional_info += ", " +device->GetState(param.channel);
+				additional_info += ", " + device->GetState(param.channel);
 			}
 			else if (command == "get_result") {
 				additional_info += ", ";

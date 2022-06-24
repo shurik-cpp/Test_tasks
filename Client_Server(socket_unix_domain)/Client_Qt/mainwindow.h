@@ -74,6 +74,7 @@ private:
 
 	bool Connect();
 	bool Disconnect();
+	std::vector<QString> GetDataFromSocket();
 	void ActivateButtons(const bool is_active);
 	void SetBoxStatus(QGroupBox* gb1, QGroupBox* gb2, const QCheckBox* cb);
 	void AddRemoveChannel(const bool is_add, const int channel_number, QLabel* voltage_lable, QLabel* status_lable);

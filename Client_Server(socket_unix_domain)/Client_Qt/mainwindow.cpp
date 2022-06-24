@@ -96,6 +96,7 @@ bool MainWindow::Connect() {
 		const QString home_path(getenv("HOME"));
 		socket_path = home_path + "/.cache/.server-socket";
 		socket->connectToServer(socket_path);
+		socket->setReadBufferSize(BUFFER_SIZE);
 	}
 	return socket->isOpen();
 }
@@ -138,6 +139,12 @@ void MainWindow::on_exit_pushButton_clicked()
 	exit(0);
 }
 
+std::vector<QString> MainWindow::GetDataFromSocket() {
+	char buff[BUFFER_SIZE];
+	if (socket->waitForReadyRead())	socket->readLine(buff, BUFFER_SIZE);
+	return SplitIntoWords(buff);
+}
+
 void MainWindow::on_get_status_pushButton_clicked()
 {
 	std::string request = "get_status ";
@@ -148,10 +155,7 @@ void MainWindow::on_get_status_pushButton_clicked()
 	}
 	socket->write(request.c_str(), request.size());
 
-	char buff[BUFFER_SIZE];
-	memset(buff, '\0', sizeof(char));
-	if (socket->waitForReadyRead())	socket->read(buff, BUFFER_SIZE);
-	std::vector<QString> data = SplitIntoWords(buff);
+	std::vector<QString> data = GetDataFromSocket();
 
 	std::cerr << "data.size() == " << data.size() << std::endl;
 	i = 0;
@@ -159,7 +163,6 @@ void MainWindow::on_get_status_pushButton_clicked()
 	for (auto& channel : active_channels) {
 		channel.status->setText(data[i++]);
 	}
-	socket->flush();
 }
 
 void MainWindow::on_get_result_pushButton_clicked()
@@ -172,10 +175,7 @@ void MainWindow::on_get_result_pushButton_clicked()
 	}
 	socket->write(request.c_str(), request.size());
 
-	char buff[BUFFER_SIZE];
-	memset(buff, '\0', sizeof(char));
-	if (socket->waitForReadyRead())	socket->read(buff, BUFFER_SIZE);
-	std::vector<QString> data = SplitIntoWords(buff);
+	std::vector<QString> data = GetDataFromSocket();
 
 	std::cerr << "data.size() == " << data.size() << std::endl;
 
@@ -184,7 +184,6 @@ void MainWindow::on_get_result_pushButton_clicked()
 	for (auto& channel : active_channels) {
 		channel.voltage->setText(data[i++]);
 	}
-	socket->flush();
 }
 
 void MainWindow::SetRange(const int channel, const int range) {
@@ -198,12 +197,9 @@ void MainWindow::SetRange(const int channel, const int range) {
 		active_channels.insert(std::move(node));
 	}
 
-	char buff[BUFFER_SIZE];
-	memset(buff, '\0', sizeof(char));
-	if (socket->waitForReadyRead())	socket->read(buff, BUFFER_SIZE);
-	std::vector<QString> data = SplitIntoWords(buff);
+	std::vector<QString> data = GetDataFromSocket();
+
 	statusBar()->showMessage(data[0], 3000);
-	socket->flush();
 }
 
 void MainWindow::on_channel0_range0_radioButton_clicked() { SetRange(0, 0); }
@@ -236,15 +232,11 @@ void MainWindow::on_start_measure_pushButton_clicked()
 	}
 	socket->write(request.c_str(), request.size());
 
-	char buff[BUFFER_SIZE];
-	memset(buff, '\0', sizeof(char));
-	if (socket->waitForReadyRead())	socket->read(buff, BUFFER_SIZE);
-	std::vector<QString> data = SplitIntoWords(buff);
+	std::vector<QString> data = GetDataFromSocket();
 
 	std::cerr << "data.size() == " << data.size() << std::endl;
 
 	statusBar()->showMessage(data[0], 3000);
-	socket->flush();
 }
 
 void MainWindow::on_stop_measure_pushButton_clicked()
@@ -257,14 +249,10 @@ void MainWindow::on_stop_measure_pushButton_clicked()
 	}
 	socket->write(request.c_str(), request.size());
 
-	char buff[BUFFER_SIZE];
-	memset(buff, '\0', sizeof(char));
-	if (socket->waitForReadyRead())	socket->read(buff, BUFFER_SIZE);
-	std::vector<QString> data = SplitIntoWords(buff);
+	std::vector<QString> data = GetDataFromSocket();
 
 	std::cerr << "data.size() == " << data.size() << std::endl;
 
 	statusBar()->showMessage(data[0], 3000);
-	socket->flush();
 }
 
